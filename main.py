@@ -9,11 +9,12 @@ if __name__ == '__main__':
     # ignore warnings
     warnings.filterwarnings("ignore")
     # prepare data_processing
-    path = os.path.join(os.path.abspath('./'), 'data_processing', 'normed images')
+    # path = os.path.join(os.path.abspath('./'), 'data_processing', 'normed images')
+    path = '..\data\images\output'
     file_lists = get_allfile(path)
     # create model
     # model = TernaryModel()
-    model = Unetv2()
+    model = Unet()
     # model = TriangularNet()
     # complie model
     model.compile_model(1e-3)
@@ -22,7 +23,7 @@ if __name__ == '__main__':
     # run model
     # weights_name = 'results/weights/model_1916_subtract_mean.weights'
     # weights_name = 'results/weights/model_1516_subtract_mean.weights'
-    weights_name = 'results/weights/model_unetv2_1108_1820_cs24.weights'
+    weights_name = 'results/weights/model_unet_1126_1550_cs24.weights'
     if True:
         model.run_model(x, y, weights_name)
     else:

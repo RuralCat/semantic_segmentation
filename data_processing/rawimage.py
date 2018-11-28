@@ -104,7 +104,7 @@ def trainingset_augmentation(data_path, output_width, output_height,
 
     # add shape operation
     p.rotate(probability=1, max_left_rotation=25, max_right_rotation=25)
-    p.crop_random(probability=1, percentage_area=0.3, randomise_percentage_area=False)
+    p.crop_random(probability=1, percentage_area=0.4, randomise_percentage_area=False)
     p.random_distortion(probability=0.8, grid_width=30, grid_height=30, magnitude=1)
     p.skew(probability=0.5)
     p.shear(probability=0.4, max_shear_left=5, max_shear_right=5)

@@ -12,6 +12,7 @@ from keras.utils import to_categorical
 from PIL import Image
 from tqdm import tqdm
 import numpy as np
+import pickle
 
 
 def TernaryModel(bdropout = True):
@@ -85,7 +86,7 @@ class ModelBase:
         # train
         self.model.fit(x, y,
                        batch_size = 4,
-                       epochs=30,
+                       epochs=40,
                        verbose=1,
                        shuffle=True,
                        validation_split=0.05,
@@ -148,7 +149,7 @@ def Squeeze(x):
 class Unet(ModelBase):
    def __init__(self):
        # image input
-       img_input = Input(shape=(572, 572, 3, ))
+       img_input = Input(shape=(572, 572, 1, ))
 
        # channel size
        cs = 24
@@ -173,7 +174,7 @@ class Unet(ModelBase):
        self.model = Model(img_input, mask_output)
 
    @staticmethod
-   def load_training_data(by_image=False, img_num=None):
+   def load_training_data(by_image=False, img_num=None, get_test=False):
        if by_image:
            # get images' path
            root_path = op.abspath('./')
@@ -193,32 +194,48 @@ class Unet(ModelBase):
                train_y.extend(masks)
        else:
            # get path
-           data_dir = op.join('data_processing', 'normed images', 'output')
+           data_dir = '..\data\images\output'
            data_path = dp.get_allfile(data_dir)
            img_num = np.int32(len(data_path) / 2)
            imgs_path = data_path[:img_num]
            masks_path = data_path[img_num:]
            # read image
-           train_x = np.zeros((img_num, 572, 572, 3), dtype=np.float32)
+           train_x = np.zeros((img_num, 572, 572, 1), dtype=np.float32)
            train_y = np.zeros((img_num, 388, 388, 1), dtype=np.float32)
            with tqdm(total=img_num, desc='Processing', unit='Images') as p_bar:
                for imp, mp, ind in zip(imgs_path, masks_path, range(img_num)):
                    with Image.open(imp) as im:
-                       train_x[ind] = np.array(im) / 255
+                       train_x[ind][:,:,0] = np.array(im) / 255
                    with Image.open(mp) as mask:
                        train_y[ind][:,:,0] = aug.crop(np.array(mask) / 255, 92, 92, 388, 388)
                    p_bar.set_description('Processing {}'.format(op.basename(imp)))
                    p_bar.update(1)
 
         # normlize
-       train_x -= np.mean(train_x, axis=0)
+       x_mean = np.mean(train_x, axis=0)
+       with open('mean_map.pic', 'wb') as f:
+           pickle.dump(x_mean, f)
+       train_x -= x_mean
 
        # shuffle
        idx = np.random.permutation(train_x.shape[0])
        train_x = train_x[idx]
        train_y = train_y[idx]
 
-       return train_x, train_y
+       # get test image
+       if get_test:
+           test_dir = '../data/test images/output'
+           data_path = dp.get_allfile(test_dir)
+           test_im_num = np.int32(len(data_path))
+           test_im = np.zeros((test_im_num, 572, 572, 1), dtype=np.float32)
+           for tp, ind in zip(data_path, range(test_im_num)):
+               with Image.open(tp) as im:
+                   test_im[ind][:,:,0] = np.array(im) / 255
+           test_im -= x_mean
+
+           return train_x, train_y, test_im
+       else:
+           return train_x, train_y
 
 class InceptionUnet(ModelBase):
     def __init__(self):
@@ -292,8 +309,9 @@ class TriangularNet(ModelBase):
 
 
 if __name__ == '__main__':
-    unet_model = Unetv2()
-    unet_model.model.summary()
+    x,y = Unet.load_training_data()
+    # unet_model = Unetv2()
+    # unet_model.model.summary()
     # tri_model = TriangularNet()
     # tri_model.model.summary()
 
