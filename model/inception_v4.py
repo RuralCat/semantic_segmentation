@@ -307,10 +307,10 @@ if __name__ == '__main__':
     from keras.applications.inception_resnet_v2 import InceptionResNetV2
     from keras.applications.inception_v3 import InceptionV3
 
-    # resnet50_model = ResNet50(include_top=False, weights=None)
-    # resnet50_model.summary()
+    resnet50_model = ResNet50(input_shape=(224, 224, 3), include_top=False, weights=None)
+    resnet50_model.summary()
     # incepres_model = InceptionResNetV2(include_top=False, weights=None)
     # incepres_model.summary()
-    inceptionv3_model = InceptionV3(include_top=False, weights=None)
-    assert isinstance(inceptionv3_model, Model)
-    inceptionv3_model.summary()
+    # inceptionv3_model = InceptionV3(include_top=False, weights=None)
+    # assert isinstance(inceptionv3_model, Model)
+    # inceptionv3_model.summary()

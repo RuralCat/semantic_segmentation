@@ -1,11 +1,16 @@
 import os
+import os.path as op
 import numpy as np
 import skimage.io as skio
 from scipy import ndimage as ndi
 import xml.etree.ElementTree as ET
-import matplotlib.pyplot as plt
 import pickle
-# from nucleus_visualize import plot_image, multi_plot_image, plot_nucleus_bound
+from keras.preprocessing.image import ImageDataGenerator
+from PIL import Image
+from tqdm import tqdm
+import data_processing.augmentation as aug
+# from data_processing.rawimage import RawImage
+from data_processing.rawimage import RawImage
 
 ROOTPATH = os.path.abspath('../')
 DATAPATH = os.path.join(ROOTPATH, 'data_processing', 'norm images target 3')
@@ -212,14 +217,6 @@ def save_training_data(patchs, labels):
     with open('data_processing/labels.pic', 'wb') as f:
         pickle.dump(labels, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-def load_training_data():
-    with open('data_processing/patchs.pic', 'rb') as f:
-        patchs = pickle.load(f)
-    with open('data_processing/labels.pic', 'rb') as f:
-        labels = pickle.load(f)
-
-    return patchs, labels
-
 def read_nucleus_bound(path):
     # parse xml file
     xml_tree = ET.parse(path)
@@ -265,6 +262,108 @@ def save_as_mask(im, verts, id='image'):
         nuclei_mask *= 255
         if True:
             skio.imsave(os.path.join(mask_path, id + '_mask_{}'.format(i) + '.png'), nuclei_mask)
+
+def convert_verts_to_mask(img_shape, anotation_path, save_path=None):
+    # read verts
+    verts = read_nucleus_bound(anotation_path)
+    bound_masks, inside_masks, _ = get_all_mask(verts, img_shape)
+    # create mask map
+    mask = np.zeros(img_shape[0:2], dtype='uint8')
+    bound = np.zeros(img_shape.shape[0:2], dtype='uint8')
+    for in_mask in inside_masks:
+        mask = mask | in_mask
+        # bound += in_maks
+    mask *= 255
+    if save_path:
+        skio.imsave(save_path, mask)
+    # plot_image(mask)
+    # plot_image(bound)
+
+def keras_data_generator():
+    datagen = ImageDataGenerator(featurewise_center=True,
+                                 featurewise_std_normalization=True,
+                                 rotation_range=45,
+                                 width_shift_range=0.2,
+                                 height_shift_range=0.2,
+                                 shear_range=15,
+                                 zoom_range=0.3,
+                                 horizontal_flip=True,
+                                 fill_mode='reflect',
+                                 validation_split=0.1)
+    return datagen
+
+def load_training_data(by_image=False, img_num=None, get_test=False):
+   if by_image:
+       # get images' path
+       root_path = op.abspath('./')
+       data_path = op.join(root_path, 'data_processing', 'normed images')
+       mask_path = op.join(root_path, 'data_processing', 'mask')
+       imgs_path = get_allfile(data_path)
+       masks_path = get_allfile(mask_path)
+       # read image and augmentation
+       train_x = []
+       train_y = []
+       img_num = len(imgs_path) if img_num is None else min(img_num, len(imgs_path))
+       for imp, mp, ind in zip(imgs_path, masks_path, range(img_num)):
+           print('{}/{} Processing {}...'.format(ind + 1, img_num, op.basename(imp)))
+           raw_image = RawImage(imp, mp)
+           # imgs, masks = raw_image.augmentation()
+           imgs, masks = raw_image.image, raw_image.mask
+           train_x.extend(imgs)
+           train_y.extend(masks)
+   else:
+       # get path
+       data_dir = '..\data\images\output'
+       data_path = get_allfile(data_dir)
+       total_num = np.int32(len(data_path) / 2)
+       imgs_path = data_path[:total_num]
+       masks_path = data_path[total_num:]
+
+       img_num = total_num if img_num is None else min(total_num, img_num)
+       imgs_path = imgs_path[:img_num]
+       masks_path = masks_path[:img_num]
+
+       # read image
+       sz0 = 572
+       sz1 = 388
+       train_x = np.zeros((img_num, sz0, sz0, 1), dtype=np.float32)
+       train_y = np.zeros((img_num, sz1, sz1, 1), dtype=np.float32)
+       with tqdm(total=img_num, desc='Processing', unit='Images') as p_bar:
+           for imp, mp, ind in zip(imgs_path, masks_path, range(img_num)):
+               with Image.open(imp) as im:
+                   # train_x[ind][:,:,0] = np.array(im) / 255
+                   train_x[ind][:, :, 0] = aug.resize(np.array(im) / 255, (sz0, sz0))
+               with Image.open(mp) as mask:
+                   train_y[ind][:,:,0] = aug.crop(np.array(mask) / 255, 92, 92, sz1, sz1)
+                   # train_y[ind][:, :, 0] = aug.resize(np.array(mask) / 255, (sz1, sz1))
+               p_bar.set_description('Processing {}'.format(op.basename(imp)))
+               p_bar.update(1)
+
+    # normlize
+   x_mean = np.mean(train_x, axis=0)
+   with open('mean_map.pic', 'wb') as f:
+       pickle.dump(x_mean, f)
+   train_x -= x_mean
+
+   # shuffle
+   idx = np.random.permutation(train_x.shape[0])
+   train_x = train_x[idx]
+   train_y = train_y[idx]
+
+   # get test image
+   if get_test:
+       test_dir = '../data/test images/output'
+       data_path = get_allfile(test_dir)
+       test_im_num = np.int32(len(data_path))
+       test_im = np.zeros((test_im_num, 572, 572, 1), dtype=np.float32)
+       for tp, ind in zip(data_path, range(test_im_num)):
+           with Image.open(tp) as im:
+               test_im[ind][:,:,0] = np.array(im) / 255
+       test_im -= x_mean
+
+       return train_x, train_y, test_im
+   else:
+       return train_x, train_y
 
 if __name__ == '__main__':
     imgs_path = get_allfile(DATAPATH)[0:2]

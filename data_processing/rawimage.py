@@ -1,7 +1,4 @@
 
-import skimage.io as skio
-# from nucleus_visualize import plot_image
-from data_processing.dataset import get_allfile, read_image, read_nucleus_bound, get_all_mask
 import numpy as np
 from data_processing import augmentation as aug
 import Augmentor
@@ -19,6 +16,7 @@ class Image:
 class RawImage(Image):
 
     def __init__(self, data, mask_path=None):
+        from data_processing.dataset import read_image
         # read image data_processing
         if isinstance(data, str):
             self.image = read_image(data)
@@ -34,9 +32,7 @@ class RawImage(Image):
     def augmentation(self):
         imgs = self._augmentation([self.image])
         masks = self._augmentation([self.mask])
-        # plot images
-        # for data_processing in imgs:
-        #     plot_image(data_processing)
+
         return imgs, masks
 
     def _augmentation(self, data_stack):
@@ -68,21 +64,7 @@ class RawImage(Image):
 
         return data_stack
 
-    def convert_verts_to_mask(self, anotation_path, save_path=None):
-        # read verts
-        verts = read_nucleus_bound(anotation_path)
-        bound_masks, inside_masks, _ = get_all_mask(verts, self.image.shape)
-        # create mask map
-        mask = np.zeros(self.image.shape[0:2], dtype='uint8')
-        bound = np.zeros(self.image.shape[0:2], dtype='uint8')
-        for in_mask in inside_masks:
-            mask = mask | in_mask
-            # bound += in_maks
-        mask *= 255
-        if save_path:
-            skio.imsave(save_path, mask)
-        # plot_image(mask)
-        # plot_image(bound)
+
 
     @property
     def is_single_channel(self):
@@ -115,12 +97,5 @@ def trainingset_augmentation(data_path, output_width, output_height,
 
 if __name__ == '__main__':
     # test
-    imgs_path = get_allfile(DATAPATH)
-    anots_path = get_allfile(ANOTPATH)
-    masks_path = get_allfile(os.path.join(ROOTPATH, 'data_processing', 'mask'))
-    trainingset_augmentation(os.path.join(ROOTPATH, 'data_processing', 'normed images'),
-                             os.path.join(ROOTPATH, 'data_processing', 'mask'))
-    from PIL import Image
-    im = Image.open('')
-    im.close()
+    pass
 
