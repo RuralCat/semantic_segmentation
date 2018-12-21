@@ -74,7 +74,8 @@ class RawImage(Image):
 def trainingset_augmentation(data_path, output_width, output_height,
                              samples=100,
                              ground_truth_path=None,
-                             output_dir='output'):
+                             output_dir='output',
+                             ground_truth_output_dir=None):
     # create pipeline
     p = Augmentor.Pipeline(data_path, output_dir)
     if ground_truth_path: p.ground_truth(ground_truth_path)
@@ -94,6 +95,20 @@ def trainingset_augmentation(data_path, output_width, output_height,
 
     # generate
     p.sample(samples)
+
+    # move ground truth to other folder
+    if ground_truth_output_dir is not None:
+        import shutil
+        from data_processing import get_all_file
+        if not os.path.exists(output_dir):
+            output_dir = os.path.join(data_path, output_dir)
+        # read all images path
+        imgs_path = get_all_file(output_dir)
+        num = np.int32(len(imgs_path) / 2)
+        # move gt
+        gt_paths = imgs_path[num:]
+        for path in gt_paths:
+            shutil.move(path, ground_truth_output_dir)
 
 if __name__ == '__main__':
     # test

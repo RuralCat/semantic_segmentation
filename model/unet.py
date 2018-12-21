@@ -2,64 +2,40 @@
 from model.modelbase import *
 
 
+def _unet():
+   # image input
+   img_input = Input(shape=(572, 572, 1, ))
 
-def UpConvBlock0(input_layer0, input_layer1, crop_size, size, name=None):
-    crop0 = Cropping2D((crop_size, crop_size))(input_layer0)
-    upconv0 = Conv2DTranspose(size, (2,2), strides=(2,2))(input_layer1)
-    # upconv0 = KL.UpSampling2D((2,2), interpolation='nearest')(input_layer1)
-    cat0 = Concatenate()([crop0, upconv0])
-    c0 = conv2d_bn(cat0, size, 3, 3, padding='valid', name='{}_0'.format(name))
-    c1 = conv2d_bn(c0, size, 3, 3, padding='valid', name='{}_1'.format(name))
-    return c1
+   # channel size
+   cs = 24
 
-def UpConvBlock1(layer, size, name=None):
-    upconv0 = Conv2DTranspose(size, (2, 2), strides=(2, 2))(layer)
-    c0 = conv2d_bn(upconv0, size, 3, 3, padding='valid', name='{}_0'.format(name))
-    c1 = conv2d_bn(c0, size, 3, 3, padding='valid', name='{}_1'.format(name))
-    return c1
+   # down sampling
+   c1, p1 = ConvBlock0(img_input, cs, name='conv_block0')
+   c2, p2 = ConvBlock0(p1, 2 * cs, name='conv_block1')
+   c3, p3 = ConvBlock0(p2, 4 * cs, name='conv_block2')
+   c4, p4 = ConvBlock0(p3, 8 * cs, name='conv_block3')
+   c5= ConvBlock0(p4, 16 * cs, pooling=False, name='conv_block4')
 
-def UpConvBlock2(layer, size, name=''):
-    upconv0 = Conv2DTranspose(size, (2, 2), strides=(2, 2))(layer)
-    c0 = conv2d_bn(upconv0, size, 3, 3, padding='valid', name='{}_0'.format(name))
-    c1 = conv2d_bn(c0, size, 3, 3, padding='valid', name='{}_1'.format(name))
-    c2 = MaxPooling2D(pool_size=(2,2))(c1)
+   # upsampleing
+   # upconv0 = UpConvBlock0(c4, c5, 4, 8 * cs, name='upconv_block0')
+   upconv0 = UpConvBlock1(c5, 8 * cs, name='upconv_block0')
+   # upconv1 = UpConvBlock0(c3, upconv0, 16, 4 * cs, name='upconv_block1')
+   upconv1 = UpConvBlock1(upconv0, 4 * cs, name='upconv_block1')
+   # upconv2 = UpConvBlock0(c2, upconv1, 40, 2 * cs, name='upconv_block2')
+   upconv2 = UpConvBlock1(upconv1, 2 * cs, name='upconv_block2')
+   # upconv3 = UpConvBlock0(c1, upconv2, 88, cs, name='upconv_block3')
+   upconv3 = UpConvBlock1(upconv2, cs, name='upconv_block3')
 
-    return c2
+   # mask output
+   mask_output = Conv2D(1, (1,1), activation='sigmoid', name='output')(upconv3)
+   # mask_output = Lambda(Squeeze)(mask_output)
 
-
+   return Model(img_input, mask_output)
 
 class Unet(ModelBase):
-   def __init__(self, config=None):
-       ModelBase.__init__(self, config)
-       # image input
-       img_input = Input(shape=(572, 572, 1, ))
-
-       # channel size
-       cs = 24
-
-       # down sampling
-       c1, p1 = ConvBlock0(img_input, cs, name='conv_block0')
-       c2, p2 = ConvBlock0(p1, 2 * cs, name='conv_block1')
-       c3, p3 = ConvBlock0(p2, 4 * cs, name='conv_block2')
-       c4, p4 = ConvBlock0(p3, 8 * cs, name='conv_block3')
-       c5= ConvBlock0(p4, 16 * cs, pooling=False, name='conv_block4')
-
-       # upsampleing
-       # upconv0 = UpConvBlock0(c4, c5, 4, 8 * cs, name='upconv_block0')
-       upconv0 = UpConvBlock1(c5, 8 * cs, name='upconv_block0')
-       # upconv1 = UpConvBlock0(c3, upconv0, 16, 4 * cs, name='upconv_block1')
-       upconv1 = UpConvBlock1(upconv0, 4 * cs, name='upconv_block1')
-       # upconv2 = UpConvBlock0(c2, upconv1, 40, 2 * cs, name='upconv_block2')
-       upconv2 = UpConvBlock1(upconv1, 2 * cs, name='upconv_block2')
-       # upconv3 = UpConvBlock0(c1, upconv2, 88, cs, name='upconv_block3')
-       upconv3 = UpConvBlock1(upconv2, cs, name='upconv_block3')
-
-       # mask output
-       mask_output = Conv2D(1, (1,1), activation='sigmoid', name='output')(upconv3)
-       # mask_output = Lambda(Squeeze)(mask_output)
-
-       self.model = Model(img_input, mask_output)
-
+    def __init__(self, config=None):
+        model = _unet()
+        ModelBase.__init__(self, model, config)
 
 class InceptionUnet(ModelBase):
     def __init__(self):

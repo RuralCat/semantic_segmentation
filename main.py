@@ -1,34 +1,27 @@
 import warnings
 from model import Unet
-from data_processing import  get_allfile
-from config import Config
+from data_processing import load_images_train_data, image_data_generator
+from config import Config, ImageConfig
 
 
 if __name__ == '__main__':
     # ignore warnings
     warnings.filterwarnings("ignore")
-    # prepare data_processing
-    path = '..\data\images\output'
-    file_lists = get_allfile(path)
-
-    config = Config()
+    # prepare config
+    config = ImageConfig()
+    config.lr = 3e-4
 
     # create model
-    # model = TernaryModel()
-    model = Unet()
-    # model = TriangularNet()
-    # complie model
-    model.compile_model(1e-3)
+    model = Unet(config=config)
+
     # load data
-    # x, y = load_training_data(by_image=True, img_num=1000)
-    x, y = None, None
+    x, y = load_images_train_data(model, img_num=100)
+
+    # date generator
+    date_gen = image_data_generator()
+
     # run model
-    weights_name = 'results/weights/model_unet_no1234skip_1218_1604_cs24.weights'
-    if True:
-        model.run_model(x, y, weights_name)
-    else:
-        y = model.predict(weights_name, file_lists[0])
-        mask = create_image_from_label(file_lists[0], y)
+    model.run_model(x, y, use_generator=False, date_gen=date_gen)
 
 
 

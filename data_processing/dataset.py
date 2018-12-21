@@ -9,17 +9,11 @@ from keras.preprocessing.image import ImageDataGenerator
 from PIL import Image
 from tqdm import tqdm
 import data_processing.augmentation as aug
-# from data_processing.rawimage import RawImage
-from data_processing.rawimage import RawImage
 
-ROOTPATH = os.path.abspath('../')
-DATAPATH = os.path.join(ROOTPATH, 'data_processing', 'norm images target 3')
-ANOTPATH = os.path.join(ROOTPATH, 'data_processing', 'Annotations')
-
-def get_allfile(path):
+def get_all_file(path):
     return [os.path.join(path, f) for f in next(os.walk(path))[2]]
 
-def get_allfolder(path):
+def get_all_folder(path):
     return [os.path.join(path, f) for f in next(os.walk(path))[1]]
 
 def find(exp, n=0):
@@ -93,7 +87,6 @@ def generate_patches(im_path, verts, sample_per_nuclear=10, patch_size=51):
 
     return bound_patchs, inside_patchs, outside_patchs
 
-
 def crop_patch(im, mask, num, patch_shape):
     indices = find(mask == 1)
     step = np.int(indices.shape[0] / num)
@@ -152,7 +145,6 @@ def create_image_from_label(im_path, labels):
     # plot_image(im_mask)
 
     return  im_mask
-
 
 def save_patch(im_path, patch, name):
     path = os.path.join(im_path[:-4], 'patch')
@@ -233,7 +225,6 @@ def read_nucleus_bound(path):
 
     return verts
 
-
 def save_as_mask(im, verts, id='image'):
     # create dir
     image_path = os.path.join(im[:-4], 'images')
@@ -276,10 +267,8 @@ def convert_verts_to_mask(img_shape, anotation_path, save_path=None):
     mask *= 255
     if save_path:
         skio.imsave(save_path, mask)
-    # plot_image(mask)
-    # plot_image(bound)
 
-def keras_data_generator():
+def image_data_generator():
     datagen = ImageDataGenerator(featurewise_center=True,
                                  featurewise_std_normalization=True,
                                  rotation_range=45,
@@ -292,93 +281,83 @@ def keras_data_generator():
                                  validation_split=0.1)
     return datagen
 
-def load_training_data(by_image=False, img_num=None, get_test=False):
-   if by_image:
-       # get images' path
-       root_path = op.abspath('./')
-       data_path = op.join(root_path, 'data_processing', 'normed images')
-       mask_path = op.join(root_path, 'data_processing', 'mask')
-       imgs_path = get_allfile(data_path)
-       masks_path = get_allfile(mask_path)
-       # read image and augmentation
-       train_x = []
-       train_y = []
-       img_num = len(imgs_path) if img_num is None else min(img_num, len(imgs_path))
-       for imp, mp, ind in zip(imgs_path, masks_path, range(img_num)):
-           print('{}/{} Processing {}...'.format(ind + 1, img_num, op.basename(imp)))
-           raw_image = RawImage(imp, mp)
-           # imgs, masks = raw_image.augmentation()
-           imgs, masks = raw_image.image, raw_image.mask
-           train_x.extend(imgs)
-           train_y.extend(masks)
-   else:
-       # get path
-       data_dir = '..\data\images\output'
-       data_path = get_allfile(data_dir)
-       total_num = np.int32(len(data_path) / 2)
-       imgs_path = data_path[:total_num]
-       masks_path = data_path[total_num:]
+def load_images(imgs_dir, output_shape, img_num=None, process_func=None):
+    # get images path
+    imgs_path = get_all_file(imgs_dir)
+    img_num = len(imgs_path) if img_num is None else min(img_num, len(imgs_path))
+    imgs_path = imgs_path[:img_num]
+    # read image
+    imgs = np.zeros((img_num,) + output_shape, dtype=np.float32)
+    with tqdm(total=img_num, desc='Processing', unit='Images') as p_bar:
+        for path, i in zip(imgs_path, range(img_num)):
+            with Image.open(path) as im:
+                im = np.array(im) / 255
+                if len(output_shape) > 2:
+                    if len(im.shape) == 2:
+                        im = np.expand_dims(aug.resize(im, output_shape[:-1]), -1)
+                    else:
+                        pass
+                else:
+                    im = aug.resize(im, output_shape)
+                imgs[i] = im if process_func is None else process_func(im)
+            p_bar.set_description('Processing {}'.format(op.basename(path)))
+            p_bar.update(1)
+    return imgs
 
-       img_num = total_num if img_num is None else min(total_num, img_num)
-       imgs_path = imgs_path[:img_num]
-       masks_path = masks_path[:img_num]
+from model.modelbase import ModelBase
+from config import ImageConfig
 
-       # read image
-       sz0 = 572
-       sz1 = 388
-       train_x = np.zeros((img_num, sz0, sz0, 1), dtype=np.float32)
-       train_y = np.zeros((img_num, sz1, sz1, 1), dtype=np.float32)
-       with tqdm(total=img_num, desc='Processing', unit='Images') as p_bar:
-           for imp, mp, ind in zip(imgs_path, masks_path, range(img_num)):
-               with Image.open(imp) as im:
-                   # train_x[ind][:,:,0] = np.array(im) / 255
-                   train_x[ind][:, :, 0] = aug.resize(np.array(im) / 255, (sz0, sz0))
-               with Image.open(mp) as mask:
-                   train_y[ind][:,:,0] = aug.crop(np.array(mask) / 255, 92, 92, sz1, sz1)
-                   # train_y[ind][:, :, 0] = aug.resize(np.array(mask) / 255, (sz1, sz1))
-               p_bar.set_description('Processing {}'.format(op.basename(imp)))
-               p_bar.update(1)
+def _image_normalization(x, mean_map=None):
+    if mean_map is not None:
+        if os.path.exists(mean_map):
+            with open(mean_map, 'rb') as f:
+                x_mean = pickle.load(f)
+        else:
+            x_mean = np.mean(x, axis=0)
+            with open(mean_map, 'wb') as f:
+                pickle.dump(x_mean, f)
+    x -= x_mean
+    return x
+
+def load_images_train_data(model, img_num=None):
+    # get image & mask shape
+    assert isinstance(model, ModelBase)
+    input_shape = model.model.input_shape[1:]
+    output_shape = model.model.output_shape[1:]
+
+    # load
+    config = model.config
+    assert isinstance(config, ImageConfig)
+    train_x = load_images(config.images_dir, input_shape, img_num)
+    train_y = load_images(config.masks_dir, output_shape, img_num)
 
     # normlize
-   x_mean = np.mean(train_x, axis=0)
-   with open('mean_map.pic', 'wb') as f:
-       pickle.dump(x_mean, f)
-   train_x -= x_mean
+    train_x = _image_normalization(train_x, config.mean_map)
 
-   # shuffle
-   idx = np.random.permutation(train_x.shape[0])
-   train_x = train_x[idx]
-   train_y = train_y[idx]
+    # shuffle
+    idx = np.random.permutation(train_x.shape[0])
+    train_x = train_x[idx]
+    train_y = train_y[idx]
 
-   # get test image
-   if get_test:
-       test_dir = '../data/test images/output'
-       data_path = get_allfile(test_dir)
-       test_im_num = np.int32(len(data_path))
-       test_im = np.zeros((test_im_num, 572, 572, 1), dtype=np.float32)
-       for tp, ind in zip(data_path, range(test_im_num)):
-           with Image.open(tp) as im:
-               test_im[ind][:,:,0] = np.array(im) / 255
-       test_im -= x_mean
+    return train_x, train_y
 
-       return train_x, train_y, test_im
-   else:
-       return train_x, train_y
+def load_image_test_data(model, imgs_dir):
+    # get image shape
+    assert isinstance(model, ModelBase)
+    input_shape = model.model.input_shape
+    # load
+    test_x = load_images(imgs_dir, input_shape)
+    # nomlization
+    assert isinstance(model.config, ImageConfig)
+    test_x = _image_normalization(test_x, model.config.mean_map)
+
+    return test_x
+
 
 if __name__ == '__main__':
-    imgs_path = get_allfile(DATAPATH)[0:2]
-    anots_path = get_allfile(ANOTPATH)[0:2]
-    num = len(imgs_path)
-    import time
-    t1 = time.time()
-    for im_path, anot_path in zip(imgs_path, anots_path):
-        verts = read_nucleus_bound(anot_path)
-        # plot_nucleus_bound(im_path, verts)
-        # bp, ip, op = generate_patches(im_path, verts)
-        # save_patch(im_path, bp, 'bound')
-        # save_patch(im_path, ip, 'inside')
-        # save_patch(im_path, op, 'outside')
-
-
-    # patchs, labels = prepare_training_data(imgs_path)
-    print(time.time()-t1)
+    a = np.random.random((3,3))
+    b = np.expand_dims(a, axis=-1)
+    print(a.shape)
+    print(a)
+    print(b.shape)
+    print(b[0])

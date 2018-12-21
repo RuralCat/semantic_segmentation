@@ -27,7 +27,6 @@ def augment_mask(data_list, func, **kwargs):
 def crop(img, x, y, height, width):
     return img[x : x + height, y : y + width]
 
-
 def dense_crop(img, height, width, num=20):
     sz = img.shape
     h_step = np.int32(np.floor((sz[0] - height) / num))
