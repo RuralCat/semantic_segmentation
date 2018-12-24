@@ -292,6 +292,7 @@ def load_images(imgs_dir, output_shape, img_num=None, process_func=None):
         for path, i in zip(imgs_path, range(img_num)):
             with Image.open(path) as im:
                 im = np.array(im) / 255
+                # resize image
                 if len(output_shape) > 2:
                     if len(im.shape) == 2:
                         im = np.expand_dims(aug.resize(im, output_shape[:-1]), -1)
@@ -299,7 +300,9 @@ def load_images(imgs_dir, output_shape, img_num=None, process_func=None):
                         pass
                 else:
                     im = aug.resize(im, output_shape)
+                # pre-process image
                 imgs[i] = im if process_func is None else process_func(im)
+            # update progress bar
             p_bar.set_description('Processing {}'.format(op.basename(path)))
             p_bar.update(1)
     return imgs

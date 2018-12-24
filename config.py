@@ -13,7 +13,7 @@ class Config(object):
 
         # model configurations
         self.model_name = 'unet'
-        self.model_description = 'no1234skip'
+        self.model_description = 'no34skip'
         self.operation = 'train' # 'train', 'predict', 'evaluate'
 
         # learning configurations
@@ -126,9 +126,9 @@ class ImageConfig(Config):
         Config.__init__(self)
 
         # data configuration
-        self.images_dir = os.path.join(self.root_path, 'data\images')
-        self.masks_dir = os.path.join(self.root_path, 'data\masks')
-        self.mean_map = os.path.join(self.root_path, 'mean_map.pic')
+        self.images_dir = os.path.join(self.root_path, 'data\images_0')
+        self.masks_dir = os.path.join(self.root_path, 'data\masks_0')
+        self.mean_map = os.path.join(self.root_path, 'mean_map_0.pic')
 
 if __name__ == '__main__':
     # config = ImageConfig()

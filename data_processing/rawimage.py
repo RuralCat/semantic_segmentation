@@ -87,7 +87,7 @@ def trainingset_augmentation(data_path, output_width, output_height,
 
     # add shape operation
     p.rotate(probability=1, max_left_rotation=25, max_right_rotation=25)
-    p.crop_random(probability=1, percentage_area=0.4, randomise_percentage_area=False)
+    p.crop_random(probability=1, percentage_area=0.5, randomise_percentage_area=False)
     p.random_distortion(probability=0.8, grid_width=30, grid_height=30, magnitude=1)
     p.skew(probability=0.5)
     p.shear(probability=0.4, max_shear_left=5, max_shear_right=5)
@@ -100,8 +100,8 @@ def trainingset_augmentation(data_path, output_width, output_height,
     if ground_truth_output_dir is not None:
         import shutil
         from data_processing import get_all_file
-        if not os.path.exists(output_dir):
-            output_dir = os.path.join(data_path, output_dir)
+        if not os.path.exists(ground_truth_output_dir):
+            os.mkdir(ground_truth_output_dir)
         # read all images path
         imgs_path = get_all_file(output_dir)
         num = np.int32(len(imgs_path) / 2)

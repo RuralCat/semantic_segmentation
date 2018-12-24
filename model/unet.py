@@ -17,10 +17,10 @@ def _unet():
    c5= ConvBlock0(p4, 16 * cs, pooling=False, name='conv_block4')
 
    # upsampleing
-   # upconv0 = UpConvBlock0(c4, c5, 4, 8 * cs, name='upconv_block0')
-   upconv0 = UpConvBlock1(c5, 8 * cs, name='upconv_block0')
-   # upconv1 = UpConvBlock0(c3, upconv0, 16, 4 * cs, name='upconv_block1')
-   upconv1 = UpConvBlock1(upconv0, 4 * cs, name='upconv_block1')
+   upconv0 = UpConvBlock0(c4, c5, 4, 8 * cs, name='upconv_block0')
+   # upconv0 = UpConvBlock1(c5, 8 * cs, name='upconv_block0')
+   upconv1 = UpConvBlock0(c3, upconv0, 16, 4 * cs, name='upconv_block1')
+   # upconv1 = UpConvBlock1(upconv0, 4 * cs, name='upconv_block1')
    # upconv2 = UpConvBlock0(c2, upconv1, 40, 2 * cs, name='upconv_block2')
    upconv2 = UpConvBlock1(upconv1, 2 * cs, name='upconv_block2')
    # upconv3 = UpConvBlock0(c1, upconv2, 88, cs, name='upconv_block3')
