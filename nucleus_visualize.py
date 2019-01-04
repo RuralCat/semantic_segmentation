@@ -31,13 +31,78 @@ def multi_plot_image(imgs):
         plt.axis('off')
     plt.show()
 
+def image_slice_show():
+    import vtk
+
+    # read image
+    from PIL import Image
+    import numpy as np
+    im = Image.open('K:\BIGCAT\Projects\EM\data\Other data\EM CA1 hippocampus region of brain\\training.tif')
+    imarray = np.array(im) / 255
+    im.close()
+
+
+    filename = "writeImageData.vti"
+
+    imageData = vtk.vtkImageData()
+    imageData.SetDimensions(imarray.shape[0], imarray.shape[1], 5)
+    if vtk.VTK_MAJOR_VERSION <= 5:
+        imageData.SetNumberOfScalarComponents(1)
+        imageData.SetScalarTypeToDouble()
+    else:
+        imageData.AllocateScalars(vtk.VTK_DOUBLE, 1)
+
+    dims = imageData.GetDimensions()
+
+    # Fill every entry of the image data with "2.0"
+    for z in range(dims[2]):
+        for y in range(dims[1]):
+            for x in range(dims[0]):
+                imageData.SetScalarComponentFromDouble(x, y, z, 0, imarray[x, y])
+
+    writer = vtk.vtkXMLImageDataWriter()
+    writer.SetFileName(filename)
+    if vtk.VTK_MAJOR_VERSION <= 5:
+        writer.SetInputConnection(imageData.GetProducerPort())
+    else:
+        writer.SetInputData(imageData)
+    writer.Write()
+
+    # Read the file (to test that it was written correctly)
+    reader = vtk.vtkXMLImageDataReader()
+    reader.SetFileName(filename)
+    reader.Update()
+
+    # Convert the image to a polydata
+    imageDataGeometryFilter = vtk.vtkImageDataGeometryFilter()
+    imageDataGeometryFilter.SetInputConnection(reader.GetOutputPort())
+    imageDataGeometryFilter.Update()
+
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(imageDataGeometryFilter.GetOutputPort())
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetPointSize(3)
+
+    # Setup rendering
+    renderer = vtk.vtkRenderer()
+    renderer.AddActor(actor)
+    renderer.SetBackground(1, 1, 1)
+    renderer.ResetCamera()
+
+    renderWindow = vtk.vtkRenderWindow()
+    renderWindow.AddRenderer(renderer)
+
+    renderWindowInteractor = vtk.vtkRenderWindowInteractor()
+
+    renderWindowInteractor.SetRenderWindow(renderWindow)
+    renderWindowInteractor.Initialize()
+    renderWindowInteractor.Start()
+
+
 if __name__ == '__main__':
-    import os
-    path = 'K:/BIGCAT/Projects/Nuclei segmentation/data_processing/Tissue images'
-    im1 = 'TCGA-18-5592-01Z-00-DX1.tif'
-    im1 = plt.imread(os.path.join(path, im1))
-    im2 = 'TCGA-21-5784-01Z-00-DX1.tif'
-    im2 = plt.imread(os.path.join(path, im2))
-    # multi_plot_image(im1, im2)
+    image_slice_show()
+
 
 

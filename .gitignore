@@ -4,6 +4,9 @@
 *.pyc
 *pycache*
 
+# ignore vs code setting
+.vs/
+
 # ignore ide setting
 .idea/
 

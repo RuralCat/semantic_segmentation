@@ -1,13 +1,14 @@
 
 from model.modelbase import *
+from config import ImageConfig
 
 
-def _unet():
+def _unet(channel_size=24):
    # image input
    img_input = Input(shape=(572, 572, 1, ))
 
    # channel size
-   cs = 24
+   cs = channel_size
 
    # down sampling
    c1, p1 = ConvBlock0(img_input, cs, name='conv_block0')
@@ -21,10 +22,10 @@ def _unet():
    # upconv0 = UpConvBlock1(c5, 8 * cs, name='upconv_block0')
    upconv1 = UpConvBlock0(c3, upconv0, 16, 4 * cs, name='upconv_block1')
    # upconv1 = UpConvBlock1(upconv0, 4 * cs, name='upconv_block1')
-   # upconv2 = UpConvBlock0(c2, upconv1, 40, 2 * cs, name='upconv_block2')
-   upconv2 = UpConvBlock1(upconv1, 2 * cs, name='upconv_block2')
-   # upconv3 = UpConvBlock0(c1, upconv2, 88, cs, name='upconv_block3')
-   upconv3 = UpConvBlock1(upconv2, cs, name='upconv_block3')
+   upconv2 = UpConvBlock0(c2, upconv1, 40, 2 * cs, name='upconv_block2')
+   # upconv2 = UpConvBlock1(upconv1, 2 * cs, name='upconv_block2')
+   upconv3 = UpConvBlock0(c1, upconv2, 88, cs, name='upconv_block3')
+   # upconv3 = UpConvBlock1(upconv2, cs, name='upconv_block3')
 
    # mask output
    mask_output = Conv2D(1, (1,1), activation='sigmoid', name='output')(upconv3)
@@ -34,7 +35,8 @@ def _unet():
 
 class Unet(ModelBase):
     def __init__(self, config=None):
-        model = _unet()
+        assert isinstance(config, ImageConfig)
+        model = _unet(config.channel_size)
         ModelBase.__init__(self, model, config)
 
 class InceptionUnet(ModelBase):

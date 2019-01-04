@@ -1,13 +1,13 @@
 
 import numpy as np
-from data_processing import augmentation as aug
+from dataset import augmentation as aug
 import Augmentor
 
 # path
 import os
 ROOTPATH = os.path.abspath('../')
-DATAPATH = os.path.join(ROOTPATH, 'data_processing', 'normed images')
-ANOTPATH = os.path.join(ROOTPATH, 'data_processing', 'Annotations')
+DATAPATH = os.path.join(ROOTPATH, 'dataset', 'normed images')
+ANOTPATH = os.path.join(ROOTPATH, 'dataset', 'Annotations')
 
 class Image:
     pass
@@ -16,8 +16,8 @@ class Image:
 class RawImage(Image):
 
     def __init__(self, data, mask_path=None):
-        from data_processing.dataset import read_image
-        # read image data_processing
+        from dataset.dataset import read_image
+        # read image dataset
         if isinstance(data, str):
             self.image = read_image(data)
         else:
@@ -99,7 +99,7 @@ def trainingset_augmentation(data_path, output_width, output_height,
     # move ground truth to other folder
     if ground_truth_output_dir is not None:
         import shutil
-        from data_processing import get_all_file
+        from dataset import get_all_file
         if not os.path.exists(ground_truth_output_dir):
             os.mkdir(ground_truth_output_dir)
         # read all images path

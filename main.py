@@ -1,17 +1,17 @@
 import warnings
 from model import Unet
-from data_processing import load_images_train_data, image_data_generator,\
+from dataset import load_images_train_data, image_data_generator,\
     trainingset_augmentation
-from config import Config, ImageConfig
+from config import Config, ImageConfig, ConfigOpt
 import os
 
 def augmentation(config):
-    im_dir = os.path.join(config.root_path, 'data/images')
-    mask_dir = os.path.join(config.root_path, 'data/masks')
-    output_dir = os.path.join(config.root_path, 'data/images_0')
-    gt_output_dir = os.path.join(config.root_path, 'data/masks_0')
+    im_dir = os.path.join(config.root_path, 'data/golgi')
+    mask_dir = os.path.join(config.root_path, 'data/golgi masks')
+    output_dir = os.path.join(config.root_path, 'data/golgi images 0')
+    gt_output_dir = os.path.join(config.root_path, 'data/golgi masks 0')
     trainingset_augmentation(im_dir, 512, 512,
-                             samples=8000, ground_truth_path=mask_dir,
+                             samples=500, ground_truth_path=mask_dir,
                              output_dir=output_dir,
                              ground_truth_output_dir=gt_output_dir)
 
@@ -20,15 +20,22 @@ if __name__ == '__main__':
     # ignore warnings
     warnings.filterwarnings("ignore")
 
-    # prepare config
+    # configuration
     config = ImageConfig()
+    config.model_description = ''
+    config.time = ''
     config.lr = 3e-4
+    config.operation = ConfigOpt.TRAIN
+    config.images_dir = '../data/golgi images 0'
+    config.masks_dir = '../data/golgi masks 0'
+    config.mean_map = 'mean_map_{}.pic'.format('')
 
     # prepare data (augmentation)
-    if False:
+    if config.operation == ConfigOpt.AUGMENTATION:
         augmentation(config)
 
-    if config.operation in ['train', 'predict', 'evaluate']:
+    if isinstance(config.operation, ConfigOpt) and \
+            config.operation is not ConfigOpt.AUGMENTATION:
         # create model
         model = Unet(config=config)
 

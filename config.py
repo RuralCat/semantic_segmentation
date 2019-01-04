@@ -4,6 +4,13 @@ import keras.optimizers as opt
 import keras.callbacks as kc
 import os
 import datetime
+from enum import Enum
+
+class ConfigOpt(Enum):
+    TRAIN = 1
+    PREDICT = 2
+    EVALUATE = 3
+    AUGMENTATION = 4
 
 class Config(object):
 
@@ -13,8 +20,8 @@ class Config(object):
 
         # model configurations
         self.model_name = 'unet'
-        self.model_description = 'no34skip'
-        self.operation = 'train' # 'train', 'predict', 'evaluate'
+        self.model_description = 'golgi_full'
+        self.operation = ConfigOpt.TRAIN
 
         # learning configurations
         # optimizer
@@ -115,10 +122,11 @@ class Config(object):
             print('{} : {}'.format(attr, value))
 
     def write_record_to_excel(self, res, **kwargs):
-        from openpyxl import Workbook
+        from openpyxl import Workbook, styles
         wb = Workbook()
         ws = wb.active
         ws.title = 'Test'
+        # align = styles.Alignment()
         # TO DO
 
 class ImageConfig(Config):
@@ -126,9 +134,10 @@ class ImageConfig(Config):
         Config.__init__(self)
 
         # data configuration
-        self.images_dir = os.path.join(self.root_path, 'data\images_0')
-        self.masks_dir = os.path.join(self.root_path, 'data\masks_0')
-        self.mean_map = os.path.join(self.root_path, 'mean_map_0.pic')
+        self.images_dir = os.path.join(self.root_path, 'data\golgi images 0')
+        self.masks_dir = os.path.join(self.root_path, 'data\golgi masks 0')
+        self.mean_map = os.path.join(self.root_path, 'mean_map_{}.pic'.format(self.time))
+        self.channel_size = 24
 
 if __name__ == '__main__':
     # config = ImageConfig()

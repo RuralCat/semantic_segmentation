@@ -2,7 +2,7 @@ from keras.layers import *
 from keras.models import Model
 from keras.preprocessing.image import ImageDataGenerator
 import keras.backend as K
-from config import Config
+from config import Config, ConfigOpt
 
 class ModelBase:
     def __init__(self, model, config=None):
@@ -84,9 +84,10 @@ class ModelBase:
 
         # run model
         op = self.config.operation
-        if op == 'train':
+        assert isinstance(op, ConfigOpt)
+        if op == ConfigOpt.TRAIN:
             self._train(use_generator, **kwargs)
-        elif op == 'predict':
+        elif op == ConfigOpt.PREDICT:
              return self._predict()
 
 
