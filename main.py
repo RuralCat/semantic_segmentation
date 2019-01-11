@@ -1,7 +1,7 @@
 import warnings
 from model import Unet
 from dataset import load_images_train_data, image_data_generator,\
-    trainingset_augmentation
+    trainingset_augmentation, patches_from_mask
 from config import Config, ImageConfig, ConfigOpt
 import os
 
@@ -14,6 +14,17 @@ def augmentation(config):
                              samples=500, ground_truth_path=mask_dir,
                              output_dir=output_dir,
                              ground_truth_output_dir=gt_output_dir)
+
+def golgi_patches(config):
+    # file path
+    im_path = os.path.join(config.root_path, 'data/golgi.tif')
+    mask_path = os.path.join(config.root_path, 'data/golgi_mask 0.tif')
+    # create patches
+    patches = patches_from_mask(im_path, mask_path, 10000, 51, label=0)
+    #
+
+
+from sklearn.model_selection import KFold, StratifiedKFold
 
 
 if __name__ == '__main__':

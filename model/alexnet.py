@@ -1,7 +1,7 @@
 
 from model.modelbase import *
 
-def TernaryModel(bdropout = True):
+def TernaryModel0(bdropout = True):
     # input
     input = Input(shape=(51, 51, 3, ))
     # conv 1
@@ -28,3 +28,50 @@ def TernaryModel(bdropout = True):
     model = Model(inputs=input, outputs=output)
 
     return model
+
+def convblock(x, size, channels, name=''):
+    conv = conv2d_bn(x, channels, size, size, name=name)
+    conv = MaxPooling2D()(conv)
+    return conv
+
+def denseblock(x, nb_filter, name=''):
+    if K.image_data_format() == 'channels_first':
+        channel_axis = 1
+    else:
+        channel_axis = -1
+    x = Dense(nb_filter,
+              name=name,
+              use_bias=False,
+              kernel_regularizer=regularizers.l2(4e-5))(x)
+    x = BatchNormalization(axis=channel_axis, momentum=0.99, scale=False)(x)
+    x = Activation('relu')(x)
+    return x
+
+def _tenarymodel():
+    # input
+    input = Input(shape=(51, 51, 3,))
+    # conv1
+    conv1 = convblock(input, 4, 25, 'conv_1')
+    # conv2
+    conv2 = convblock(conv1, 5, 50, 'conv_2')
+    # conv1
+    conv3 = convblock(conv2, 6, 80, 'conv_3')
+    # dense
+    flat = Flatten()(conv3)
+    dense1 = denseblock(flat, 1024, name='dense_1')
+    dense2 = denseblock(dense1, 1024, name='dense_1')
+    dense2 = Dropout(0.5)(dense2)
+    # output
+    output = Dense(3, activation='softmax')(dense2)
+    # create model
+    model = Model(inputs=input, outputs=output)
+
+    return model
+
+class TenaryModel(ModelBase):
+    def __init__(self, config=None):
+        from config import ImageConfig
+        assert isinstance(config, ImageConfig)
+        model = _tenarymodel()
+        ModelBase.__init__(model, config)
+

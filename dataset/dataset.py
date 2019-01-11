@@ -2,8 +2,7 @@
 import os
 import numpy as np
 import skimage.io as skio
-from scipy import ndimage as ndi
-import xml.etree.ElementTree as ET
+
 import pickle
 from keras.preprocessing.image import ImageDataGenerator
 from PIL import Image
@@ -32,6 +31,11 @@ def patches_from_mask(im, mask, num, patch_size, label=1):
     """
     patch is a square shape
     """
+    # if input is string, try to read it
+    if isinstance(im, str):
+        im = read_image(im)
+    if isinstance(mask, str):
+        mask = read_image(mask)
     # image padding
     r = np.int((patch_size - 1) / 2)
     im = np.pad(im, ((r, r), (r, r), (0, 0)), 'symmetric')
@@ -53,7 +57,7 @@ def patches_from_image(im_path, patch_size, step=2):
     """
     we need use it to create patches for a test image
     if we use all pixels, a 1K * 1K image will generate 10GB size patches (patch size 51 X 51)
-    so we use param:step to do unsampling
+    so we use param:step to do downsampling
     """
     import itertools
     # read image
