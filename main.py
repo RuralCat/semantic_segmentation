@@ -25,7 +25,7 @@ def golgi_patches(config):
 
 
 from sklearn.model_selection import KFold, StratifiedKFold
-
+import samples
 
 if __name__ == '__main__':
     # ignore warnings

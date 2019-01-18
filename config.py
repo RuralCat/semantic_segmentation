@@ -5,6 +5,7 @@ import keras.callbacks as kc
 import os
 import datetime
 from enum import Enum
+import pickle
 
 class ConfigOpt(Enum):
     TRAIN = 1
@@ -12,15 +13,30 @@ class ConfigOpt(Enum):
     EVALUATE = 3
     AUGMENTATION = 4
 
-class Config(object):
+# file path concatenation
+fullfile = lambda path, *paths : os.path.join(path, *paths)
+pathexist = lambda path: os.path.exists(path)
 
-    def __init__(self):
+class Config(object):
+    def __init__(self, root_path, model_description=''):
+        # name
+        self.name = model_description
+        # create results directory
+        if not pathexist(fullfile(root_path, 'results')):
+            os.mkdir(fullfile(root_path, 'results'))
+        config_path = fullfile(root_path, 'results', self.name)
+        if os.path.exists(config_path):
+            raise ValueError('The config has been existed, change config '
+                             'name to avoid overriding existed results')
+        else:
+            os.mkdir(config_path)
+            self.config_path = config_path
         # data path
-        self.root_path = os.path.abspath('../')
+        self.root_path = root_path
 
         # model configurations
         self.model_name = 'unet'
-        self.model_description = 'golgi_full'
+        self.model_description = model_description
         self.operation = ConfigOpt.TRAIN
 
         # learning configurations
@@ -35,18 +51,20 @@ class Config(object):
         # momentum
         self.momentum = 0.95
         # batch size
-        self.batch_size = 4
+        self.batch_size = 6
         # epochs
         self.epochs = 40
+        # step per epoch
+        self.steps_per_epoch = 1000
         # validation
         self.validation_split = 0.05
 
         # post-learning configurations
         # weights_path
         self.time = self._time
-        self.weights_path = os.path.join(self.root_path, 'code/results', 'weights', self._weights)
+        self.weights_path = fullfile(self.config_path, 'model.weights')
         # log dir
-        self.log_dir = os.path.join(self.root_path, 'code/results', 'logs', self._weights)
+        self.log_dir = fullfile(self.config_path, 'log')
         # learning callbacks configurations
         self.use_earlystopping = True
         self.earlystopping_config = dict(monitor='val_loss',
@@ -129,23 +147,41 @@ class Config(object):
         # align = styles.Alignment()
         # TO DO
 
+    def save_config(self):
+        # add to index list
+        with open('history.py', 'a') as f:
+            f.write('\n'
+                    + '    '
+                    + self.name.upper()
+                    + ' = '
+                    + self.name)
+        # save config
+
+        with open(fullfile(self.config_path, 'config.pic'), 'wb') as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load_config(root_path, config_dir):
+        config_path = fullfile(root_path, 'results', config_dir, 'config.pic')
+        with open(config_path, 'rb') as f:
+            config = pickle.load(f)
+            assert isinstance(config, Config)
+        return config
+
 class ImageConfig(Config):
-    def __init__(self):
-        Config.__init__(self)
+    def __init__(self, root_path, model_description):
+        Config.__init__(self, root_path, model_description)
 
         # data configuration
         self.images_dir = os.path.join(self.root_path, 'data\golgi images 0')
         self.masks_dir = os.path.join(self.root_path, 'data\golgi masks 0')
-        self.mean_map = os.path.join(self.root_path, 'mean_map_{}.pic'.format(self.time))
+        self.mean_map = os.path.join(self.root_path, 'results\mean_map\mean_map_{}.pic'.format(self.time))
         self.channel_size = 24
 
 if __name__ == '__main__':
-    # config = ImageConfig()
-    # config.summary()
-    # print(os.path.exists(config.images_dir))
-    a = {}
-    b = dict(po=1, pl=2)
-    print(type(a))
-    print(type(b))
+   with open('history.py', 'a') as f:
+       f.write('\n' + '    ' + 'A = "aaass"')
+       print('1')
+       print('2')
 
 

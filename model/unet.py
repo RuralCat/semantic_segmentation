@@ -5,13 +5,17 @@ from config import ImageConfig
 
 def _unet(channel_size=24):
    # image input
-   img_input = Input(shape=(572, 572, 1, ))
+   img_input = Input(shape=(256, 256, 1, ))
+   channel_axis = 1 if K.image_data_format() == '' else -1
+   x =BatchNormalization(axis=channel_axis,
+                                 momentum=0.99,
+                                 scale=False)(img_input)
 
    # channel size
    cs = channel_size
 
    # down sampling
-   c1, p1 = ConvBlock0(img_input, cs, name='conv_block0')
+   c1, p1 = ConvBlock0(x, cs, name='conv_block0')
    c2, p2 = ConvBlock0(p1, 2 * cs, name='conv_block1')
    c3, p3 = ConvBlock0(p2, 4 * cs, name='conv_block2')
    c4, p4 = ConvBlock0(p3, 8 * cs, name='conv_block3')
@@ -163,3 +167,9 @@ class Unet_padding(ModelBase):
 class Unetv3(ModelBase):
     def __init__(self):
         pass
+
+if __name__ == '__main__':
+    from keras.utils import vis_utils
+    unet = _unet(24)
+    vis_utils.plot_model(unet)
+    import keras.losses

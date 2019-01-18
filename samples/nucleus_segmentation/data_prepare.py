@@ -20,7 +20,6 @@ def read_patch(im_path, name):
 
     return patch
 
-
 def get_all_mask(verts, img_shape):
     # define mask list
     bound_masks = []
@@ -57,7 +56,6 @@ def get_all_mask(verts, img_shape):
     for mask in outside_masks:
         outside_mask = outside_mask & mask
     return bound_masks, inside_masks, outside_mask
-
 
 def generate_patches(im_path, verts, sample_per_nuclear=10, patch_size=51):
     # read image
@@ -179,10 +177,30 @@ def convert_verts_to_mask(img_shape, anotation_path, save_path=None):
     bound_masks, inside_masks, _ = get_all_mask(verts, img_shape)
     # create mask map
     mask = np.zeros(img_shape[0:2], dtype='uint8')
-    bound = np.zeros(img_shape.shape[0:2], dtype='uint8')
+    # bound = np.zeros(img_shape[0:2], dtype='uint8')
     for in_mask in inside_masks:
         mask = mask | in_mask
         # bound += in_maks
     mask *= 255
     if save_path:
         skio.imsave(save_path, mask)
+    else:
+        return mask
+
+def check_dir(dir):
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+
+if __name__ == '__main__':
+    data_path = 'K:\\BIGCAT\\Projects\\Nuclei segmentation\\data\\Tissue images'
+    images_dir = os.path.join(data_path, 'Gray images')
+    masks_dir = os.path.join(data_path, 'Mask images')
+    images_output_dir = os.path.join(data_path, 'Augmented gray images')
+    masks_output_dir = os.path.join(data_path, 'Augmented mask images')
+    check_dir(images_output_dir)
+    # check_dir(masks_output_dir)
+    aug.trainingset_augmentation(images_dir, 256, 256,
+                                 samples=10000,
+                                 ground_truth_path=masks_dir,
+                                 output_dir=images_output_dir,
+                                 ground_truth_output_dir=masks_output_dir)

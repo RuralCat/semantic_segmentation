@@ -94,13 +94,11 @@ def labelmap_from_patches(im_shape, labels, step=2):
 
 
 def image_data_generator():
-    datagen = ImageDataGenerator(featurewise_center=True,
-                                 featurewise_std_normalization=True,
-                                 rotation_range=45,
-                                 width_shift_range=0.2,
-                                 height_shift_range=0.2,
-                                 shear_range=15,
-                                 zoom_range=0.3,
+    datagen = ImageDataGenerator(rotation_range=0.2,
+                                 width_shift_range=0.05,
+                                 height_shift_range=0.05,
+                                 shear_range=0.05,
+                                 zoom_range=0.05,
                                  horizontal_flip=True,
                                  fill_mode='reflect',
                                  validation_split=0.1)
@@ -144,6 +142,12 @@ def _image_normalization(x, mean_map=None):
     x -= x_mean
     return x
 
+def img_norm(x, mean=None, std=None):
+    if mean is None:
+        mean = np.mean(x)
+        std = np.std(x)
+    return (x - mean) / std
+
 def load_images_train_data(model, img_num=None):
     # get image & mask shape
     assert isinstance(model, ModelBase)
@@ -157,7 +161,7 @@ def load_images_train_data(model, img_num=None):
     train_y = load_images(config.masks_dir, output_shape, img_num)
 
     # normlize
-    train_x = _image_normalization(train_x, config.mean_map)
+    # train_x = _image_normalization(train_x, config.mean_map)
 
     # shuffle
     idx = np.random.permutation(train_x.shape[0])
@@ -166,15 +170,15 @@ def load_images_train_data(model, img_num=None):
 
     return train_x, train_y
 
-def load_image_test_data(model, imgs_dir):
+def load_image_test_data(model, imgs_dir, nb_imgs=None):
     # get image shape
     assert isinstance(model, ModelBase)
-    input_shape = model.model.input_shape
+    input_shape = model.model.input_shape[1:]
     # load
-    test_x = load_images(imgs_dir, input_shape)
+    test_x = load_images(imgs_dir, input_shape, nb_imgs)
     # nomlization
     assert isinstance(model.config, ImageConfig)
-    test_x = _image_normalization(test_x, model.config.mean_map)
+    # test_x = _image_normalization(test_x, model.config.mean_map)
 
     return test_x
 

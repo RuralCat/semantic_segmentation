@@ -95,3 +95,44 @@ def imadjust(src, tol=1, vin=[0,255], vout=(0,255)):
     dst = vd
 
     return dst
+
+def trainingset_augmentation(data_path, output_width, output_height,
+                             samples=100,
+                             ground_truth_path=None,
+                             output_dir='output',
+                             ground_truth_output_dir=None):
+    import os
+    import Augmentor
+    # create pipeline
+    p = Augmentor.Pipeline(data_path, output_dir)
+    if ground_truth_path: p.ground_truth(ground_truth_path)
+
+    # add color operation
+    # p.random_contrast(probability=1, min_factor=1, max_factor=1)
+    # p.random_brightness(probability=1, min_factor=1, max_factor=1)
+    # p.random_color(probability=1, min_factor=1, max_factor=1)
+
+    # add shape operation
+    p.rotate(probability=1, max_left_rotation=25, max_right_rotation=25)
+    p.crop_random(probability=1, percentage_area=0.5, randomise_percentage_area=False)
+    p.random_distortion(probability=0.8, grid_width=30, grid_height=30, magnitude=1)
+    p.skew(probability=0.5)
+    p.shear(probability=0.4, max_shear_left=5, max_shear_right=5)
+    p.resize(probability=1, width=output_width, height=output_height)
+
+    # generate
+    p.sample(samples)
+
+    # move ground truth to other folder
+    if ground_truth_output_dir is not None:
+        import shutil
+        from dataset import get_all_file
+        if not os.path.exists(ground_truth_output_dir):
+            os.mkdir(ground_truth_output_dir)
+        # read all images path
+        imgs_path = get_all_file(output_dir)
+        num = np.int32(len(imgs_path) / 2)
+        # move gt
+        gt_paths = imgs_path[num:]
+        for path in gt_paths:
+            shutil.move(path, ground_truth_output_dir)

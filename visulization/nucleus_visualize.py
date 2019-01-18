@@ -100,6 +100,8 @@ def image_slice_show():
     renderWindowInteractor.Initialize()
     renderWindowInteractor.Start()
 
+def pyqt_win(name=''):
+    pass
 
 if __name__ == '__main__':
     image_slice_show()
